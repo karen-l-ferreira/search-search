@@ -114,7 +114,7 @@ async function buscarContato(cnpjLimpo, env) {
   const AC_API_TOKEN = env.AC_API_TOKEN || '';
   const AC_BASE_URL = env.AC_BASE_URL || 'https://gcbinvestimentos.activehosted.com';
 
-  const [lemit, receita, ac, saldo] = await Promise.all([
+  const [lemit, receitaPrimaria, ac, saldo] = await Promise.all([
     httpsGet(`https://api.lemit.com.br/api/v1/consulta/empresa/${cnpjLimpo}`, {
       Authorization: `Bearer ${LEMIT_TOKEN}`,
     }),
@@ -126,6 +126,16 @@ async function buscarContato(cnpjLimpo, env) {
       Authorization: `Bearer ${LEMIT_TOKEN}`,
     }),
   ]);
+
+  // Se a BrasilAPI falhar (ex: limite de requisições, 429), tenta a ReceitaWS
+  // como alternativa antes de desistir dessa fonte.
+  let receita = receitaPrimaria;
+  if (!receitaPrimaria.ok) {
+    const receitaAlternativa = await httpsGet(`https://www.receitaws.com.br/v1/cnpj/${cnpjLimpo}`);
+    if (receitaAlternativa.ok) {
+      receita = receitaAlternativa;
+    }
+  }
 
   const phones = [];
   const emails = [];
