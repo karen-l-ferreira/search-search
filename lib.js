@@ -114,13 +114,16 @@ async function buscarContato(cnpjLimpo, env) {
   const AC_API_TOKEN = env.AC_API_TOKEN || '';
   const AC_BASE_URL = env.AC_BASE_URL || 'https://gcbinvestimentos.activehosted.com';
 
-  const [lemit, receita, ac] = await Promise.all([
+  const [lemit, receita, ac, saldo] = await Promise.all([
     httpsGet(`https://api.lemit.com.br/api/v1/consulta/empresa/${cnpjLimpo}`, {
       Authorization: `Bearer ${LEMIT_TOKEN}`,
     }),
     httpsGet(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`),
     httpsGet(`${AC_BASE_URL}/api/3/contacts?search=${cnpjLimpo}`, {
       'Api-Token': AC_API_TOKEN,
+    }),
+    httpsPost(`https://api.lemit.com.br/api/v1/saldo`, {
+      Authorization: `Bearer ${LEMIT_TOKEN}`,
     }),
   ]);
 
@@ -139,10 +142,12 @@ async function buscarContato(cnpjLimpo, env) {
     telefones: dedup(phones),
     emails: dedup(emails),
     contatosAC,
+    saldo: saldo.json,
     fontes: {
       lemit: { ok: lemit.ok, status: lemit.status, erro: lemit.error },
       receita: { ok: receita.ok, status: receita.status, erro: receita.error },
       ac: { ok: ac.ok, status: ac.status, erro: ac.error },
+      saldo: { ok: saldo.ok, status: saldo.status, erro: saldo.error },
     },
   };
 }
@@ -164,6 +169,22 @@ function paginaResultado(cnpj, resultado) {
   if (!resultado.fontes.lemit.ok) avisos.push(`Lemit falhou (status ${resultado.fontes.lemit.status || 'sem resposta'}${resultado.fontes.lemit.erro ? ', ' + resultado.fontes.lemit.erro : ''})`);
   if (!resultado.fontes.receita.ok) avisos.push(`Receita Federal falhou (status ${resultado.fontes.receita.status || 'sem resposta'}${resultado.fontes.receita.erro ? ', ' + resultado.fontes.receita.erro : ''})`);
   if (!resultado.fontes.ac.ok) avisos.push(`ActiveCampaign falhou (status ${resultado.fontes.ac.status || 'sem resposta'}${resultado.fontes.ac.erro ? ', ' + resultado.fontes.ac.erro : ''})`);
+
+  let saldoTexto = 'não disponível';
+  if (resultado.fontes.saldo.ok && resultado.saldo) {
+    const s = resultado.saldo;
+    const chaveConhecida = ['saldo', 'creditos', 'credito', 'limite', 'consultas_restantes', 'balance'].find(
+      (k) => s[k] !== undefined
+    );
+    if (chaveConhecida) {
+      saldoTexto = String(s[chaveConhecida]);
+    } else {
+      // Não achou um campo com nome conhecido, mostra o retorno bruto (limitado)
+      saldoTexto = escapeHtml(JSON.stringify(s)).slice(0, 300);
+    }
+  } else if (!resultado.fontes.saldo.ok) {
+    saldoTexto = `falhou (status ${resultado.fontes.saldo.status || 'sem resposta'})`;
+  }
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -190,6 +211,8 @@ function paginaResultado(cnpj, resultado) {
     <ul>${linhasTelefones}</ul>
     <h3>Emails encontrados</h3>
     <ul>${linhasEmails}</ul>
+    <h3>Saldo restante Lemit</h3>
+    <p>${saldoTexto}</p>
     <a class="voltar" href="/">&larr; Nova busca</a>
   </div>
 </body>
