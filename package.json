@@ -1,0 +1,14 @@
+{
+  "name": "busca-contato",
+  "version": "1.0.0",
+  "description": "Busca CNPJ em Lemit, Receita Federal e ActiveCampaign, lista telefones e emails.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
