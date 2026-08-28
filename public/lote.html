@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Enriquecimento em Massa</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f6f8; padding: 40px; }
+  .card { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  h2 { margin-top: 0; color: #193469; }
+  p { color: #444; font-size: 14px; line-height: 1.5; }
+  label { font-weight: bold; display: block; margin-bottom: 8px; }
+  input[type="file"] { width: 100%; margin-bottom: 20px; }
+  button { width: 100%; padding: 12px; font-size: 16px; background: #f4633a; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #d94f28; }
+  a.voltar { display: inline-block; margin-top: 20px; color: #193469; font-size: 14px; }
+  #status { display: none; margin-top: 16px; font-size: 14px; color: #193469; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Enriquecimento em Massa</h2>
+    <p>
+      Envie uma planilha (.xlsx, .xls ou .csv) com uma coluna de <strong>CNPJ</strong> ou de
+      <strong>razão social</strong> (aceita cabeçalhos como "CNPJ", "Razão Social", "Empresa" ou "Cedente").
+      Cada linha da planilha original é devolvida intacta, com colunas extras de telefone, email e
+      contato do ActiveCampaign encontrados.
+    </p>
+    <p>
+      Planilhas grandes podem demorar alguns minutos — cada linha faz de 2 a 3 consultas externas.
+    </p>
+    <form id="form-lote" action="/api/lote" method="POST" enctype="multipart/form-data">
+      <label for="planilha">Planilha</label>
+      <input type="file" id="planilha" name="planilha" accept=".xlsx,.xls,.csv" required>
+      <button type="submit">Processar e baixar resultado</button>
+    </form>
+    <p id="status">Processando, aguarde...</p>
+    <a class="voltar" href="/">&larr; Voltar para busca individual</a>
+  </div>
+  <script>
+    document.getElementById('form-lote').addEventListener('submit', function () {
+      document.getElementById('status').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
