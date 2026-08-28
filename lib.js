@@ -2,7 +2,6 @@
 // Usado tanto pelo servidor standalone (server.js) quanto pela function do Vercel (api/buscar.js)
 
 const https = require('https');
-const { URL } = require('url');
 
 function httpsGet(urlString, headers = {}, timeoutMs = 8000) {
   return new Promise((resolve) => {
@@ -31,41 +30,6 @@ function httpsGet(urlString, headers = {}, timeoutMs = 8000) {
       req.destroy();
       resolve({ ok: false, status: 0, json: null, error: 'timeout' });
     });
-  });
-}
-
-function httpsPost(urlString, headers = {}, timeoutMs = 8000) {
-  return new Promise((resolve) => {
-    let settled = false;
-    const u = new URL(urlString);
-    const req = https.request(
-      { hostname: u.hostname, path: u.pathname + u.search, method: 'POST', headers },
-      (res) => {
-        let data = '';
-        res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => {
-          if (settled) return;
-          settled = true;
-          try {
-            resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, json: JSON.parse(data) });
-          } catch (e) {
-            resolve({ ok: false, status: res.statusCode, json: null, raw: data });
-          }
-        });
-      }
-    );
-    req.on('error', (err) => {
-      if (settled) return;
-      settled = true;
-      resolve({ ok: false, status: 0, json: null, error: String(err) });
-    });
-    req.setTimeout(timeoutMs, () => {
-      if (settled) return;
-      settled = true;
-      req.destroy();
-      resolve({ ok: false, status: 0, json: null, error: 'timeout' });
-    });
-    req.end();
   });
 }
 
@@ -175,7 +139,7 @@ async function buscarContato(cnpjLimpo, env) {
   const AC_API_TOKEN = env.AC_API_TOKEN || '';
   const AC_BASE_URL = env.AC_BASE_URL || 'https://gcbinvestimentos.activehosted.com';
 
-  const [lemit, receita, ac] = await Promise.all([
+  const [lemit, receitaPrimaria, ac] = await Promise.all([
     httpsGet(`https://api.lemit.com.br/api/v1/consulta/empresa/${cnpjLimpo}`, {
       Authorization: `Bearer ${LEMIT_TOKEN}`,
     }),
@@ -184,6 +148,16 @@ async function buscarContato(cnpjLimpo, env) {
       'Api-Token': AC_API_TOKEN,
     }),
   ]);
+
+  // Se a BrasilAPI falhar (ex: limite de requisições, 429), tenta a ReceitaWS
+  // como alternativa antes de desistir dessa fonte.
+  let receita = receitaPrimaria;
+  if (!receitaPrimaria.ok) {
+    const receitaAlternativa = await httpsGet(`https://www.receitaws.com.br/v1/cnpj/${cnpjLimpo}`);
+    if (receitaAlternativa.ok) {
+      receita = receitaAlternativa;
+    }
+  }
 
   const phones = [];
   const emails = [];

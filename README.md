@@ -67,8 +67,3 @@ prefira rodar via `node server.js` (Opção B), que não tem esse limite.
 - O arquivo `.env` está no `.gitignore`, nunca sobe pro GitHub.
 - No Vercel, os tokens ficam em "Environment Variables" (painel do próprio Vercel), nunca no código.
 - Nunca compartilhe `LEMIT_TOKEN`, `AC_API_TOKEN` nem `CNPJA_API_KEY` em texto puro fora desses lugares.
-
-## Segurança
-
-- O arquivo `.env` está no `.gitignore`, nunca sobe pro GitHub.
-- Nunca compartilhe o `LEMIT_TOKEN` nem o `AC_API_TOKEN` em texto puro fora do `.env`.
