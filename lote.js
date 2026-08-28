@@ -90,7 +90,7 @@ function linhaComResultado(base, busca) {
   ];
 }
 
-async function enriquecerPlanilha(buffer, env, { concorrencia = 4 } = {}) {
+async function enriquecerPlanilha(buffer, env, { concorrencia = 2 } = {}) {
   const { header, linhas, colIndex } = lerEntradasDaPlanilha(buffer);
   if (!linhas.length) {
     return { erro: 'Não encontrei nenhuma linha com dados na planilha.' };

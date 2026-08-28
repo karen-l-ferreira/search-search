@@ -73,6 +73,10 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+function aguardar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function buscarCnpjPorNome(nomeEmpresa, env) {
   const CNPJA_API_KEY = env.CNPJA_API_KEY || '';
   if (!CNPJA_API_KEY) {
@@ -80,12 +84,21 @@ async function buscarCnpjPorNome(nomeEmpresa, env) {
   }
 
   const url = `https://api.cnpja.com/office?names.in=${encodeURIComponent(nomeEmpresa)}&limit=5`;
-  const resp = await httpsGet(url, { Authorization: CNPJA_API_KEY });
+
+  let resp;
+  const TENTATIVAS_RATE_LIMIT = 4;
+  for (let tentativa = 1; tentativa <= TENTATIVAS_RATE_LIMIT; tentativa++) {
+    resp = await httpsGet(url, { Authorization: CNPJA_API_KEY });
+    const ehRateLimit = resp.status === 429 && resp.json && /rate limit/i.test(resp.json.message || '');
+    if (!ehRateLimit) break;
+    if (tentativa < TENTATIVAS_RATE_LIMIT) await aguardar(tentativa * 2000);
+  }
 
   if (!resp.ok) {
+    const mensagemApi = resp.json && resp.json.message ? ` — ${resp.json.message}` : '';
     return {
       ok: false,
-      erro: `CNPJá falhou ao buscar por nome (status ${resp.status || 'sem resposta'}${resp.error ? ', ' + resp.error : ''})`,
+      erro: `CNPJá falhou ao buscar por nome (status ${resp.status || 'sem resposta'}${resp.error ? ', ' + resp.error : ''}${mensagemApi})`,
       candidatos: [],
     };
   }
